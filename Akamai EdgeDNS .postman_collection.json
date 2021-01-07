@@ -1,0 +1,722 @@
+{
+	"info": {
+		"_postman_id": "080214e0-bb93-49b9-991c-f8c96db4a251",
+		"name": "Akamai EdgeDNS ",
+		"description": "some examples how to manage your Akamai EdgeDNS records using API calls.\n\nMore information can be found here:\nhttps://developer.akamai.com/api/cloud_security/edge_dns_zone_management/v2.html\n\nMake sure you have the correct FastDNS credentials setup for your API user with the read-write option.\nDNS—Zone Record Management\tDNS—Zone Record Management\tREAD-WRITE\n\nMore information about the API credentials:\nhttps://developer.akamai.com/api/getting-started",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "create initial zone",
+			"item": [
+				{
+					"name": "get contract id",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// add contractId to environment var.",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"contractId\", jsonData.contracts[0].contractId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"zone\": \"{{name}}\",\n    \"type\": \"primary\",\n    \"comment\": \"{{name}} zone created via API call\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/data/contracts",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"data",
+								"contracts"
+							]
+						},
+						"description": "get the contract id which we need to create a new zone."
+					},
+					"response": []
+				},
+				{
+					"name": "create primary zone example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"zone\": \"{{name}}\",\n    \"type\": \"primary\",\n    \"comment\": \"{{name}} zone created via API call\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones?contractId={{contractId}}",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones"
+							],
+							"query": [
+								{
+									"key": "contractId",
+									"value": "{{contractId}}"
+								}
+							]
+						},
+						"description": "create a new primary zone.\n\nDon't forget to include the contractId which can be found via Akamai CLI: \"$ akamai pm lc\"\n\njson schema: https://developer.akamai.com/api/cloud_security/edge_dns_zone_management/v2-api.zip"
+					},
+					"response": []
+				},
+				{
+					"name": "create change list for example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recordsets\": [\n        {\n            \"name\": \"demo.{{name}}\",\n            \"type\": \"CNAME\",\n            \"ttl\": 300,\n            \"rdata\": [\n                \"demo.{{name}}.edgekey.net\"\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/changelists?zone={{name}}",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"changelists"
+							],
+							"query": [
+								{
+									"key": "zone",
+									"value": "{{name}}"
+								}
+							]
+						},
+						"description": "when creating a change list it will automatically create the NS and SOA records. You need this before being able to add any other DNS records"
+					},
+					"response": []
+				},
+				{
+					"name": "submit change list for example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recordsets\": [\n        {\n            \"name\": \"demo.{{name}}\",\n            \"type\": \"CNAME\",\n            \"ttl\": 300,\n            \"rdata\": [\n                \"demo.{{name}}.edgekey.net\"\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/changelists/{{name}}/submit",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"changelists",
+								"{{name}}",
+								"submit"
+							]
+						},
+						"description": "now we will automatically apply the change list and create the NS and SOA records. The zone activation status will transfer from \"New\" to \"Pending\" to \"Active\""
+					},
+					"response": []
+				}
+			],
+			"description": "you can use a \"runner\" to create the zone. Just create an environment with your API credentials and make sure to set the {{name}} environment var so this zone can be created. These 4 steps will lookup the contract_id, create the zone and push it the change list so SOA and NS are automatically created.\n\nThe other examples don't use change lists so changes are applied immediately. We're only using the change list to automatically create the NS and SOA records.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "record sets - multiple records",
+			"item": [
+				{
+					"name": "create record sets in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recordsets\": [\n        {\n            \"name\": \"demo.{{name}}\",\n            \"type\": \"CNAME\",\n            \"ttl\": 300,\n            \"rdata\": [\n                \"demo.{{name}}.edgekey.net\"\n            ]\n        },\n        {\n            \"name\": \"{{name}}\",\n            \"type\": \"TXT\",\n            \"ttl\": 1800,\n            \"rdata\": [\n                \"\\\"v=spf1 -all\\\"\"\n            ]\n        },\n        {\n            \"name\": \"no._domainkey.{{name}}\",\n            \"type\": \"TXT\",\n            \"ttl\": 1800,\n            \"rdata\": [\n                \"\\\"v=DKIM1; p=\\\"\"\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/recordsets",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"recordsets"
+							]
+						},
+						"description": "update a record set for this zone"
+					},
+					"response": []
+				},
+				{
+					"name": "list record sets in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recordsets\": [\n        {\n            \"name\": \"demo.{{name}}\",\n            \"type\": \"CNAME\",\n            \"ttl\": 300,\n            \"rdata\": [\n                \"demo.{{name}}.edgekey.net\"\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/recordsets",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"recordsets"
+							]
+						},
+						"description": "update a record set for this zone"
+					},
+					"response": []
+				},
+				{
+					"name": "update record sets in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"recordsets\": [\n        {\n            \"name\": \"example.com\",\n            \"type\": \"SOA\",\n            \"ttl\": 86400,\n            \"rdata\": [\n                \"a1-174.akam.net. hostmaster.example.com. 2021010611 3600 600 604800 300\"\n            ]\n        },\n        {\n            \"name\": \"demo.example.com\",\n            \"type\": \"CNAME\",\n            \"ttl\": 301,\n            \"rdata\": [\n                \"demo.example.com.edgekey.net.\"\n            ]\n        },\n        {\n            \"name\": \"example.com\",\n            \"type\": \"TXT\",\n            \"ttl\": 1800,\n            \"rdata\": [\n                \"\\\"v=spf1 -all\\\"\"\n            ]\n        },\n        {\n            \"name\": \"no._domainkey.example.com\",\n            \"type\": \"TXT\",\n            \"ttl\": 1800,\n            \"rdata\": [\n                \"\\\"v=DKIM1; p=\\\"\"\n            ]\n        },\n        {\n            \"name\": \"example.com\",\n            \"type\": \"NS\",\n            \"ttl\": 86400,\n            \"rdata\": [\n                \"a1-174.akam.net.\",\n                \"a26-67.akam.net.\",\n                \"a3-64.akam.net.\",\n                \"a6-65.akam.net.\",\n                \"a7-66.akam.net.\",\n                \"a8-67.akam.net.\"\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/recordsets",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"recordsets"
+							]
+						},
+						"description": "update the record sets. You need to include the complete list. So first do a GET, get all the recordsets[], make modifications upgrade SOA and apply again."
+					},
+					"response": []
+				}
+			],
+			"description": "create multiple record sets.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "record set - single record",
+			"item": [
+				{
+					"name": "create record set in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"test.example.com\",\n    \"type\": \"A\",\n    \"ttl\": 300,\n    \"rdata\": [\n        \"10.0.0.2\",\n        \"10.0.0.3\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/names/test.{{name}}/types/A",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"names",
+								"test.{{name}}",
+								"types",
+								"A"
+							]
+						},
+						"description": "update a record set for this zone"
+					},
+					"response": []
+				},
+				{
+					"name": "get record set in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"test.example.com\",\n    \"type\": \"A\",\n    \"ttl\": 300,\n    \"rdata\": [\n        \"10.0.0.2\",\n        \"10.0.0.3\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/names/test.{{name}}/types/A",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"names",
+								"test.{{name}}",
+								"types",
+								"A"
+							]
+						},
+						"description": "get a record set for this zone"
+					},
+					"response": []
+				},
+				{
+					"name": "update record set in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"test.example.com\",\n    \"type\": \"A\",\n    \"ttl\": 300,\n    \"rdata\": [\n        \"10.0.0.2\",\n        \"10.0.0.5\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/names/test.{{name}}/types/A",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"names",
+								"test.{{name}}",
+								"types",
+								"A"
+							]
+						},
+						"description": "update a record set for this zone"
+					},
+					"response": []
+				},
+				{
+					"name": "delete record set in example.com",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{authorizationHeader}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"test.example.com\",\n    \"type\": \"A\",\n    \"ttl\": 300,\n    \"rdata\": [\n        \"10.0.0.2\",\n        \"10.0.0.5\"\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://{{baseURL}}/config-dns/v2/zones/{{name}}/names/test.{{name}}/types/A",
+							"protocol": "https",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"config-dns",
+								"v2",
+								"zones",
+								"{{name}}",
+								"names",
+								"test.{{name}}",
+								"types",
+								"A"
+							]
+						},
+						"description": "update a record set for this zone"
+					},
+					"response": []
+				}
+			],
+			"description": "create specific record set like an A record.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "list zones",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "edgegrid",
+		"edgegrid": [
+			{
+				"key": "baseURL",
+				"value": "",
+				"type": "string"
+			},
+			{
+				"key": "clientSecret",
+				"value": "{{clientSecret}}",
+				"type": "string"
+			},
+			{
+				"key": "clientToken",
+				"value": "{{clientToken}}",
+				"type": "string"
+			},
+			{
+				"key": "accessToken",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
